@@ -1,0 +1,233 @@
+HEAD Buckling behaviour test of an elasto-plastic pipe, resting  on irregular Seabed. 
+HEAD firstly: BC: symmetry--free. LOAD: gravity + constant axial force.
+HEAD secondly: remove axial force, constrain all translational dof at the right end and
+HEAD impose internal pressure and temperature load.
+HEAD UNITS: [m]=kg, [s]=m, [t]=s, [T]=C  -->  [F]=N, [p]=Pa.
+#
+#       mass   length  time
+#UNITS   1.0    1.0     1.0
+#
+#----------------------------------------------------------------------------------------#
+# Control data:                                                                          #
+#----------------------------------------------------------------------------------------#
+#         maxit  ndim  isolvr npoint ipri  conr  gacc    iproc   
+CONTROL      50     3    1       16    1  1e-3   9.81     stressfree    
+#
+#
+# Control parameters for dynamic analysis  
+#        imass  alfa1   alfa2   alfa
+DYNCONT  1      0.0     0.095   -0.05
+#
+#
+VISRES   INTEGRATION 1 SIGMA-XX  STRAIN-XX
+#
+#
+#
+#----------------------------------------------------------------------------------------#
+# Analysis time control:                                                                 #
+#----------------------------------------------------------------------------------------#
+#        t    dt   dtvi dtdy dt0    type    hla?
+TIMECO   10.0  0.01  0.1  1.0  201.0  STATIC  NOHLA auto  none  disp   200   5    0.00001
+#
+#
+#
+#----------------------------------------------------------------------------------------#
+# Nodal coordinate input                                                                 #
+#----------------------------------------------------------------------------------------#
+# pipe nodes
+#                    no       x     y   z  (between the two points : linear interpolation)
+NOCOOR coordinates    1	       0    0	-1999.6621
+                    varN	   varL	0	-1999.6621
+#
+#
+# sea 
+#                    no          x       y   z   
+NOCOOR coordinates 9001	         0       0    0
+                   9002       2500       0    0
+                   9003       2500       2500 0
+                   9004	         0  	 2500 0
+#
+#
+#
+#------------------------------------------------------------------------------
+# Elcon  input:
+#      group      elty       material  no  n1   n2  n3   n4
+# Pipe
+ELCON pipe1       pipe33     pipemat1      1   1   2
+repeat  varE 1 1
+
+# Seabed
+ELCON seabed    cont126     cosurf1 4500    1
+repeat  varN 1 1
+
+# Sea
+ELCON sea1       sea150      seamat   9000 9001 9002  9003  9004
+#
+#
+#
+#
+#                    
+#-----------------------------------------------------------------------------------------------------------------------------
+# Orientation input
+#pipe                   elno             x          y        z
+ELORIENT COORDINATES       1            0.0     10.0     -1999.6612
+                        varE            0.0     10.0     -1999.6612
+#seabed                 elno              tx       ty       tz
+ELORIENT eulerangle    4500           0.000    0.000      0.0
+                       varSeabed      0.000    0.000      0.0
+
+#
+#
+#
+#
+#-----------------------------------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------------------------------
+# Defining the contact properties:
+#-----------------------------------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------------------------------
+#
+#
+#-----------------------------------------------------------------------------------------------------------------------------
+# Cosurfpr data (contact surface properties):
+#
+#        name   data file         nlines KP0       x0   y0   fi   soil id
+COSURFPR cosurf1 "seabed.txt"      1     0.0      0.0  0.0  0.0   100
+#
+# Soil descriptions
+#      id        startkp    stopkp   soil
+COSUPR 100       -10000      600000     soil1
+#
+#-----------------------------------------------------------------------------------------------------------------------------
+# Contact interfaces:
+#
+#       groupn      mname          name     is1   isn    istx   isty  istz   maxit  igap
+CONTINT seabed      pipe1      cosurf1       1    varN    0.0  0.0   0.0    100     2.0
+CONTINT sea1        sea1         pipe1
+#
+#
+#----------------------------------------------------------------------------------------#
+# Boundary condition data                                                                #
+#----------------------------------------------------------------------------------------#
+#
+## pipe
+#      Loc    node  dir
+BONCON GLOBAL  1      1 
+BONCON GLOBAL  1      2
+repeat varN 1
+BONCON GLOBAL  1      3
+BONCON GLOBAL  1      4
+BONCON GLOBAL  1      5
+BONCON GLOBAL  1      6
+##  at right end 
+#BONCON GLOBAL   2200      1 
+BONCON GLOBAL  varN      2
+#BONCON GLOBAL  2200      3
+#
+#
+## sea
+#      Loc    node  dir
+BONCON GLOBAL 9001 1
+repeat 4 1
+BONCON GLOBAL 9001 2
+repeat 4 1 
+BONCON GLOBAL 9001 3
+repeat 4 1 
+#
+#
+#
+#----------------------------------------------------------------------------------------#
+# LOAD INPUT:                                                                            #
+#----------------------------------------------------------------------------------------#
+#
+## Concentrated nodal load (N):
+#     hist    dir   no1     r1 
+CLOAD   50    1     varN     1E+5
+#
+#
+## External pressure and gravity:
+#       externpreshistnr    gravloadhistnr
+PELOAD  100                 150
+#
+#
+## Internal prressure (Pa):
+#       loadhistnr   elnr1    p1         elnr2     p2
+PILOAD  200          1        38E+6      varE      38E+6
+#
+#
+## Temperature load (C):
+#       loadhistnr elnr1   t1        elnr2   t2
+TLOAD   300        1       100       varE     1000															
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#----------------------------------------------------------------------------------------#
+# Element property input:                                                                #
+#----------------------------------------------------------------------------------------#
+#       name   type   rad    th      CDr  Cdt  CMr  CMt  wd            ws           ODp      
+ELPROP pipe1 pipe  0.3216 0.0346  0.8  0.1  2.0  0.2  548.8  544.6   0.6778
+#                                                                              ODw     rks                                                                               
+                                                                               0.6778  0.5
+#
+#
+#
+#
+#
+#
+#
+#----------------------------------------------------------------------------------------#
+#  Material data:                                                                        #      
+#----------------------------------------------------------------------------------------#
+#        name      type    density(kg/m3)
+MATERIAL seamat    sea     1027 
+#
+#        name     type          alfa nu   rho(kg/m3) talfa    tecond heatc eps  sigma(Pa)
+MATERIAL pipemat1 elastoplastic  1   0.3  7850   1.17e-5  50     800   0           0
+                                                                      1.691E-03   350E+06
+                                                                      5.000E-03   450E+06
+                                                                      9.980E-02   835E+06
+#
+#        name      type   rmyx rmyy  xname  yname   zname
+MATERIAL soil1    contact 0.5   1.0  soilx  soily   soilz
+#        name      type   alfa   eps    sig
+MATERIAL soilx    epcurve  1     0       0
+                                 0.005   1
+                               100.00    10
+#        name      type          eps        sig
+MATERIAL soily    epcurve  1       0.00     0
+                                   0.10     1
+                                 100.00     10
+#        name      type         eps         sig
+MATERIAL soilz    hycurve       -10000      -10000e6 
+                                 10000       10000e6 
+
+#
+#
+#
+#
+#
+#
+#
+#----------------------------------------------------------------------------------------#
+# History data                                                                           #
+#----------------------------------------------------------------------------------------#
+# of concentrated force load (N) 
+THIST_R 50  0.0   0.1  RAMPCOS  1 
+#   
+# of external pressure load (Pa)
+THIST_R 100  0.1   1.0  RAMPCOS  1 
+#   
+# of gravity load (m/s2)  
+THIST_R 150  0.1   1.0  RAMPCOS  1 
+#
+# of internal pressure load (Pa)
+THIST_R 200  1.0   5.0  RAMPCOS  0  
+#
+# of temperature load (C)
+THIST_R 300  5.0    10.0  RAMPCOS  0
+
